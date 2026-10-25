@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#003399">
+  <meta name="description"
+        content="IngoPrevent — сценарный калькулятор воронки и экономики программы.">
+  <title>IngoPrevent — калькулятор экономики</title>
+
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+
+  <style>
+    :root {
+      color-scheme: light;
+      --brand: #003399;
+      --background: #F4F7FA;
+      --text: #202B3C;
+      --muted: #657387;
+      --border: #DFE5ED;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--background);
+      color: var(--text);
+      font-family: Inter, -apple-system, BlinkMacSystemFont,
+                   "Segoe UI", Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Основное оформление работает и при недоступности CDN. */
+    .page {
+      min-height: 100vh;
+      min-height: 100svh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+
+    .calculator { width: 100%; max-width: 1080px; }
+
+    .card {
+      overflow: hidden;
+      background: #FFFFFF;
+      border: 1px solid #E7ECF2;
+      border-radius: 12px;
+      box-shadow: 0 12px 40px rgba(25, 48, 85, .06);
+    }
+
+    .header { padding: 30px 32px; border-bottom: 1px solid #E7ECF2; }
+    .brand { color: var(--brand); font-size: 14px; font-weight: 750; }
+    h1 { margin: 12px 0 8px; font-size: clamp(25px, 4vw, 34px); line-height: 1.2; }
+    .description { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
+
+    .layout { display: grid; grid-template-columns: 1.1fr 1fr; }
+    .controls { padding: 28px 32px; }
+    .results { padding: 28px 32px; background: #F8FAFD; border-left: 1px solid #E7ECF2; }
+
+    .section-title { margin: 0 0 22px; font-size: 16px; font-weight: 700; }
+    .control + .control { margin-top: 23px; }
+    .control-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+    .control label { font-size: 14px; line-height: 1.4; }
+    .value { color: var(--brand); font-size: 26px; font-weight: 750; white-space: nowrap; }
+    .hint { margin: 3px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+
+    input[type="range"] {
+      --fill: 0%;
+      display: block;
+      width: 100%;
+      height: 44px;
+      margin: 6px 0 0;
+      padding: 0;
+      appearance: none;
+      -webkit-appearance: none;
+      background: transparent;
+      cursor: pointer;
+      touch-action: pan-y;
+    }
+
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 8px;
+      border-radius: 999px;
+      background: linear-gradient(
+        to right,
+        var(--brand) 0%,
+        var(--brand) var(--fill),
+        #E0E6EF var(--fill),
+        #E0E6EF 100%
+      );
+    }
+
+    input[type="range"]::-moz-range-track {
+      height: 8px;
+      border-radius: 999px;
+      background: #E0E6EF;
+    }
+
+    input[type="range"]::-moz-range-progress {
+      height: 8px;
+      border-radius: 999px;
+      background: var(--brand);
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      width: 28px;
+      height: 28px;
+      margin-top: -10px;
+      appearance: none;
+      -webkit-appearance: none;
+      border: 1px solid #BFC8D5;
+      border-radius: 50%;
+      background: #FFFFFF;
+      box-shadow: 0 2px 5px rgba(27, 48, 78, .12);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 26px;
+      height: 26px;
+      border: 1px solid #BFC8D5;
+      border-radius: 50%;
+      background: #FFFFFF;
+      box-shadow: 0 2px 5px rgba(27, 48, 78, .12);
+    }
+
+    input[type="range"]:focus-visible {
+      outline: 2px solid var(--brand);
+      outline-offset: 3px;
+      border-radius: 6px;
+    }
+
+    .limits { display: flex; justify-content: space-between; color: var(--muted); font-size: 11px; }
+    .economics { margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--border); }
+    .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .field label { display: block; margin-bottom: 8px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+
+    input[type="number"] {
+      width: 100%;
+      min-height: 48px;
+      padding: 10px 12px;
+      border: 1px solid #CCD5E1;
+      border-radius: 8px;
+      background: #FFFFFF;
+      color: var(--text);
+      font: inherit;
+      font-size: 16px;
+      font-weight: 650;
+    }
+
+    input[type="number"]:focus-visible {
+      outline: 2px solid var(--brand);
+      outline-offset: 2px;
+    }
+
+    .funnel { margin: 0; padding: 0; list-style: none; }
+    .funnel li { padding: 15px 0; border-bottom: 1px solid #E2E8F0; }
+    .funnel li:first-child { padding-top: 0; }
+    .step { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; }
+    .step-label { font-size: 13px; line-height: 1.5; color: var(--muted); }
+    .step-number { font-size: 23px; font-weight: 750; white-space: nowrap; }
+    .step-note { margin: 5px 0 0; font-size: 11px; color: var(--muted); line-height: 1.5; }
+
+    .revenue { margin-top: 25px; padding: 22px; background: var(--brand); border-radius: 10px; color: #FFFFFF; }
+    .revenue-label { margin: 0; font-size: 13px; color: #DBE6FF; }
+    .revenue-number {
+      display: block;
+      margin-top: 8px;
+      font-size: clamp(27px, 3.5vw, 38px);
+      font-weight: 800;
+      line-height: 1.2;
+      overflow-wrap: anywhere;
+    }
+    .revenue-note { margin: 10px 0 0; font-size: 12px; color: #DBE6FF; line-height: 1.5; }
+    .summary { margin-top: 18px; }
+    .summary-row { display: flex; justify-content: space-between; gap: 16px; margin-top: 13px; font-size: 13px; }
+    .summary-row span { color: var(--muted); }
+    .summary-row strong { text-align: right; font-variant-numeric: tabular-nums; }
+    .summary-row.total { padding-top: 15px; border-top: 1px solid var(--border); font-size: 15px; }
+
+    .footer { padding: 20px 32px; border-top: 1px solid #E7ECF2; }
+    .footer-inner { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+    .disclaimer { max-width: 680px; margin: 0; color: var(--muted); font-size: 11px; line-height: 1.6; }
+
+    button {
+      min-height: 44px;
+      padding: 10px 16px;
+      border: 1px solid var(--brand);
+      border-radius: 8px;
+      background: #FFFFFF;
+      color: var(--brand);
+      font: inherit;
+      font-size: 13px;
+      font-weight: 650;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    button:hover { background: #EDF3FF; }
+    button:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; }
+    output, .step-number { font-variant-numeric: tabular-nums; }
+
+    @media (max-width: 760px) {
+      .page { align-items: flex-start; padding: 16px 12px; }
+      .layout { grid-template-columns: 1fr; }
+      .header, .controls, .results { padding: 24px 20px; }
+      .results { border-left: 0; border-top: 1px solid #E7ECF2; }
+      .footer { padding: 20px; }
+      .footer-inner { flex-direction: column; align-items: stretch; }
+      .value { font-size: 28px; }
+    }
+
+    @media (max-width: 360px) {
+      .fields { grid-template-columns: 1fr; }
+      .header, .controls, .results, .footer { padding: 20px 16px; }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="page">
+    <div class="calculator">
+      <form id="calculator" class="card rounded-xl" aria-labelledby="title">
+        <header class="header">
+          <div class="brand">IngoPrevent</div>
+          <h1 id="title">Экономика программы</h1>
+          <p class="description">
+            Измените параметры воронки и оцените выручку
+            и маржинальный доход за один цикл программы.
+          </p>
+        </header>
+
+        <div class="layout">
+          <section class="controls" aria-labelledby="settings-title">
+            <h2 class="section-title" id="settings-title">Параметры сценария</h2>
+
+            <div class="control">
+              <div class="control-heading">
+                <label for="base">База застрахованных ДМС</label>
+                <output class="value" id="base-value" for="base"></output>
+              </div>
+              <input id="base" type="range"
+                     min="0" max="3000000" step="10000" value="1900000">
+              <div class="limits"><span>0</span><span>3 000 000 человек</span></div>
+            </div>
+
+            <div class="control">
+              <div class="control-heading">
+                <label for="risk">Доля целевой группы</label>
+                <output class="value" id="risk-value" for="risk"></output>
+              </div>
+              <p class="hint">От общей базы застрахованных</p>
+              <input id="risk" type="range"
+                     min="0" max="30" step="0.1" value="10">
+              <div class="limits"><span>0%</span><span>30%</span></div>
+            </div>
+
+            <div class="control">
+              <div class="control-heading">
+                <label for="reach">Охват предложением</label>
+                <output class="value" id="reach-value" for="reach"></output>
+              </div>
+              <p class="hint">От численности целевой группы</p>
+              <input id="reach" type="range"
+                     min="0" max="100" step="1" value="30">
+              <div class="limits"><span>0%</span><span>100%</span></div>
+            </div>
+
+            <div class="control">
+              <div class="control-heading">
+                <label for="conversion">Конверсия в оплату</label>
+                <output class="value" id="conversion-value" for="conversion"></output>
+              </div>
+              <p class="hint">От числа людей, получивших предложение</p>
+              <input id="conversion" type="range"
+                     min="0" max="100" step="0.1" value="6">
+              <div class="limits"><span>0%</span><span>100%</span></div>
+            </div>
+
+            <div class="economics">
+              <h2 class="section-title">Экономика одного участника</h2>
+              <div class="fields">
+                <div class="field">
+                  <label for="price">Цена за 90 дней, ₽</label>
+                  <input id="price" type="number" inputmode="numeric"
+                         min="0" max="1000000" step="100" value="12000" required>
+                </div>
+                <div class="field">
+                  <label for="cost">Переменные затраты, ₽</label>
+                  <input id="cost" type="number" inputmode="numeric"
+                         min="0" max="1000000" step="100" value="9000" required>
+                </div>
+              </div>
+              <p class="hint" style="margin-top: 10px">
+                Стартовые затраты: сопровождение — 7 500 ₽,
+                продажи и администрирование — 1 500 ₽.
+              </p>
+            </div>
+          </section>
+
+          <section class="results" aria-labelledby="results-title">
+            <h2 class="section-title" id="results-title">Расчётная воронка</h2>
+
+            <ol class="funnel">
+              <li>
+                <div class="step">
+                  <span class="step-label">База застрахованных</span>
+                  <output class="step-number" id="result-base" for="base"></output>
+                </div>
+              </li>
+              <li>
+                <div class="step">
+                  <span class="step-label">Целевая группа</span>
+                  <output class="step-number" id="result-target" for="base risk"></output>
+                </div>
+                <p class="step-note" id="target-formula"></p>
+              </li>
+              <li>
+                <div class="step">
+                  <span class="step-label">Получат предложение</span>
+                  <output class="step-number" id="result-reached" for="base risk reach"></output>
+                </div>
+                <p class="step-note" id="reach-formula"></p>
+              </li>
+              <li>
+                <div class="step">
+                  <span class="step-label">Оплатят программу</span>
+                  <output class="step-number" id="result-paid"
+                          for="base risk reach conversion"></output>
+                </div>
+                <p class="step-note" id="paid-formula"></p>
+              </li>
+            </ol>
+
+            <div class="revenue">
+              <p class="revenue-label">Выручка за цикл программы</p>
+              <output class="revenue-number" id="revenue"
+                      for="base risk reach conversion price"></output>
+              <p class="revenue-note" id="revenue-formula"></p>
+            </div>
+
+            <div class="summary">
+              <div class="summary-row">
+                <span>Переменные затраты</span>
+                <strong><output id="total-cost"></output></strong>
+              </div>
+              <div class="summary-row">
+                <span>Доход на участника</span>
+                <strong><output id="unit-margin"></output></strong>
+              </div>
+              <div class="summary-row">
+                <span>Маржинальность</span>
+                <strong><output id="margin-rate"></output></strong>
+              </div>
+              <div class="summary-row total">
+                <span>Маржинальный доход</span>
+                <strong><output id="contribution"></output></strong>
+              </div>
+            </div>
+
+            <p class="hint" style="margin-top: 18px">
+              Маржинальный доход = выручка − переменные затраты.
+              Постоянные расходы и налоги не включены.
+            </p>
+          </section>
+        </div>
+
+        <footer class="footer">
+          <div class="footer-inner">
+            <p class="disclaimer">
+              Сценарная оценка, не прогноз и не подтверждённые показатели
+              «Ингосстраха». На каждом этапе количество людей округляется
+              вниз до целого. Цена указана за полный 90-дневный цикл.
+            </p>
+            <button type="reset">Сбросить параметры</button>
+          </div>
+        </footer>
+
+        <div id="announcement" class="sr-only" role="status"
+             aria-live="polite" aria-atomic="true"></div>
+      </form>
+
+      <noscript>
+        <p style="padding: 16px; text-align: center">
+          Для работы калькулятора включите JavaScript в браузере.
+        </p>
+      </noscript>
+    </div>
+  </main>
+
+  <script>
+    "use strict";
+
+    (() => {
+      const form = document.getElementById("calculator");
+      const ids = ["base", "risk", "reach", "conversion", "price", "cost"];
+      const inputs = Object.fromEntries(
+        ids.map(id => [id, document.getElementById(id)])
+      );
+
+      const format = value =>
+        value.toLocaleString("ru-RU", { maximumFractionDigits: 0 });
+
+      const percent = value =>
+        value.toLocaleString("ru-RU", { maximumFractionDigits: 1 }) + "%";
+
+      const money = value => format(value) + " ₽";
+
+      const write = (id, value) => {
+        document.getElementById(id).textContent = value;
+      };
+
+      // Пустое поле временно считается нулём.
+      // После завершения ввода значение ограничивается min/max.
+      function read(input) {
+        const value = input.valueAsNumber;
+        const min = Number(input.min);
+        const max = Number(input.max);
+        return Number.isFinite(value)
+          ? Math.min(max, Math.max(min, value))
+          : min;
+      }
+
+      function paintSlider(input, value) {
+        const min = Number(input.min);
+        const max = Number(input.max);
+        const fill = max > min ? (value - min) / (max - min) * 100 : 0;
+
+        input.style.setProperty("--fill", fill + "%");
+        input.setAttribute(
+          "aria-valuetext",
+          input.id === "base" ? format(value) + " человек" : percent(value)
+        );
+      }
+
+      let announcementTimer;
+
+      function calculate() {
+        const state = Object.fromEntries(
+          ids.map(id => [id, read(inputs[id])])
+        );
+
+        const { base, risk, reach, conversion, price, cost } = state;
+
+        // Каскадная воронка: каждый следующий этап
+        // рассчитывается от предыдущего, уже округлённого.
+        const target = Math.floor(base * risk / 100);
+        const reached = Math.floor(target * reach / 100);
+        const paid = Math.floor(reached * conversion / 100);
+
+        const revenue = paid * price;
+        const totalCost = paid * cost;
+        const unitMargin = price - cost;
+        const contribution = revenue - totalCost;
+        const marginRate = revenue > 0
+          ? contribution / revenue * 100
+          : null;
+
+        ["base", "risk", "reach", "conversion"].forEach(id => {
+          paintSlider(inputs[id], state[id]);
+          write(id + "-value", id === "base"
+            ? format(state[id])
+            : percent(state[id]));
+        });
+
+        write("result-base", format(base));
+        write("result-target", format(target));
+        write("result-reached", format(reached));
+        write("result-paid", format(paid));
+
+        write("target-formula", format(base) + " × " + percent(risk));
+        write("reach-formula", format(target) + " × " + percent(reach));
+        write("paid-formula", format(reached) + " × " + percent(conversion));
+
+        write("revenue", money(revenue));
+        write("revenue-formula", format(paid) + " участников × " + money(price));
+        write("total-cost", money(totalCost));
+        write("unit-margin", money(unitMargin));
+        write("margin-rate", marginRate === null ? "—" : percent(marginRate));
+        write("contribution", money(contribution));
+
+        // Озвучивание итогов после паузы, чтобы скринридер
+        // не повторял результат при каждом движении ползунка.
+        clearTimeout(announcementTimer);
+        announcementTimer = setTimeout(() => {
+          write(
+            "announcement",
+            "Участников: " + format(paid) +
+            ". Выручка: " + money(revenue) +
+            ". Маржинальный доход: " + money(contribution) + "."
+          );
+        }, 500);
+      }
+
+      form.addEventListener("submit", event => event.preventDefault());
+      form.addEventListener("input", calculate);
+
+      ["price", "cost"].forEach(id => {
+        inputs[id].addEventListener("change", () => {
+          inputs[id].value = String(read(inputs[id]));
+          calculate();
+        });
+      });
+
+      // reset срабатывает до восстановления исходных значений.
+      form.addEventListener("reset", () => {
+        requestAnimationFrame(calculate);
+      });
+
+      calculate();
+    })();
+  </script>
+</body>
+</html>
